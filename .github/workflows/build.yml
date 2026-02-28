@@ -2,16 +2,11 @@ name: Build Windows EXE
 
 on:
   push:
-    branches: [ main ]
-    tags:
-      - 'v*'
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    branches: [ main, master ]
+n  workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -24,23 +19,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install pyinstaller pillow pandas openpyxl
     
     - name: Build EXE
-      run: |
-        pyinstaller --onefile --windowed --name "carton-label-tool" --clean --noconfirm carton_label_tool.py
+      run: pyinstaller --onefile --windowed --name "carton_label_tool" --clean carton_label_app.py
     
-    - name: Package
-      run: |
-        mkdir release
-        copy "dist\carton-label-tool.exe" "release\"
-        copy "README.md" "release\"
-        Compress-Archive -Path "release\*" -DestinationPath "carton-label-tool-windows.zip"
-    
-    - name: Upload to Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
+    - name: Upload to Artifacts
+      uses: actions/upload-artifact@v4
       with:
-        files: carton-label-tool-windows.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: carton_label_tool_exe
+        path: dist/carton_label_tool.exe
