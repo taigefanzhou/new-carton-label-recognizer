@@ -26,31 +26,21 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
-    - name: Download EasyOCR models
+    - name: Build EXE
       run: |
-        python -c "import easyocr; reader = easyocr.Reader(['ch_sim','en'], gpu=False)"
+        pyinstaller --onefile --windowed --name "carton-label-tool" --clean --noconfirm carton_label_tool.py
     
-    - name: Build EXE with PyInstaller
+    - name: Package
       run: |
-        pyinstaller --onefile --windowed --name "箱唛识别工具" --clean --noconfirm --hidden-import=easyocr --hidden-import=pandas --hidden-import=openpyxl carton_label_tool.py
-        
-    - name: Create release package
-      run: |
-        New-Item -ItemType Directory -Force -Path "release"
-        Copy-Item "dist\箱唛识别工具.exe" "release\"
-        Copy-Item "README.md" "release\"
-        Compress-Archive -Path "release\*" -DestinationPath "箱唛识别工具-Windows.zip"
+        mkdir release
+        copy "dist\carton-label-tool.exe" "release\"
+        copy "README.md" "release\"
+        Compress-Archive -Path "release\*" -DestinationPath "carton-label-tool-windows.zip"
     
     - name: Upload to Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: 箱唛识别工具-Windows.zip
+        files: carton-label-tool-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: 箱唛识别工具-Windows
-        path: 箱唛识别工具-Windows.zip
