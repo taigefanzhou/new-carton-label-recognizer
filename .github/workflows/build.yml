@@ -1,0 +1,56 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Download EasyOCR models
+      run: |
+        python -c "import easyocr; reader = easyocr.Reader(['ch_sim','en'], gpu=False)"
+    
+    - name: Build EXE with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed --name "箱唛识别工具" --clean --noconfirm --hidden-import=easyocr --hidden-import=pandas --hidden-import=openpyxl carton_label_tool.py
+        
+    - name: Create release package
+      run: |
+        New-Item -ItemType Directory -Force -Path "release"
+        Copy-Item "dist\箱唛识别工具.exe" "release\"
+        Copy-Item "README.md" "release\"
+        Compress-Archive -Path "release\*" -DestinationPath "箱唛识别工具-Windows.zip"
+    
+    - name: Upload to Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: 箱唛识别工具-Windows.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: 箱唛识别工具-Windows
+        path: 箱唛识别工具-Windows.zip
